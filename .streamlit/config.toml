@@ -4,3 +4,22 @@ primaryColor = "#2D5BE3"
 backgroundColor = "#0E1B3C"
 secondaryBackgroundColor = "#112A62"
 textColor = "#FFFFFF"
+font = "sans serif"
+
+[server]
+headless = true
+port = 8501
+enableCORS = false
+enableXsrfProtection = true
+fileWatcherType = "none"
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = true
+
+[logger]
+level = "info"
+messageFormat = "%(asctime)s - %(message)s"
+
+[browser]
+gatherUsageStats = false
