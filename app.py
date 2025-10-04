@@ -1,4 +1,17 @@
 # app.py
+# --- Fix ruta de imports en Streamlit Cloud ---
+import os, sys
+from pathlib import Path
+
+APP_ROOT = Path(__file__).parent.resolve()
+if str(APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(APP_ROOT))
+# (opcional) también el padre por si la app vive en subcarpeta
+if str(APP_ROOT.parent) not in sys.path:
+    sys.path.insert(0, str(APP_ROOT.parent))
+# ----------------------------------------------
+
+
 from __future__ import annotations
 
 
