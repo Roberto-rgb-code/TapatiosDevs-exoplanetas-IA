@@ -1,0 +1,86 @@
+/* === NASA Space Apps: azul intenso / barra azul === */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Orbitron:wght@600;800&display=swap');
+
+:root{
+  --bg:#0E1B3C;
+  --bg2:#0a296d;
+  --bar:#1A3A8A;
+  --primary:#2D5BE3;
+  --primary-hover:#2348B4;
+  --text:#FFFFFF;
+  --text-dim:#BFD3FF;
+  --border:#2B3F7A;
+}
+
+html, body, .stApp {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial !important;
+}
+
+h1,h2,h3,h4,h5 {
+  font-family: 'Orbitron','Poppins',sans-serif !important;
+  color: var(--text) !important;
+  letter-spacing: .2px;
+}
+
+/* Barra/encabezado visual (usa contenedores y expanders) */
+hr { border: 0; height: 1px; background: var(--border); opacity:.6; }
+
+/* Sidebar */
+[data-testid="stSidebar"]{
+  background: var(--bg2) !important;
+  border-right: 1px solid var(--border);
+}
+
+/* Contenedores principales (plots, tablas) */
+.stDataFrame, .stPlotlyChart, .stMarkdown, .stAlert, .stTable, .stMetric {
+  background: var(--bg2) !important;
+  border-radius: 12px;
+  padding: .6rem .8rem;
+  border: 1px solid var(--border);
+}
+
+/* Expander header = barra azul */
+.streamlit-expanderHeader{
+  background: var(--bar) !important;
+  color: var(--text) !important;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+/* Botones */
+.stButton>button, button[kind="primary"]{
+  background: var(--primary) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  padding: .5rem 1rem !important;
+}
+.stButton>button:hover{ background: var(--primary-hover) !important; }
+
+/* Selects / inputs */
+.stSelectbox, .stTextInput, .stNumberInput, .stMultiSelect, .stFileUploader {
+  background: var(--bg2) !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* Chips tipo “Incompleto”/badge */
+.badge{
+  background: var(--primary);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: .85rem;
+}
+
+/* Texto tenue */
+.small{ color: var(--text-dim); }
+
+/* Scrollbar */
+::-webkit-scrollbar{ width: 8px; }
+::-webkit-scrollbar-thumb{ background: var(--primary); border-radius: 8px; }

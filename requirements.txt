@@ -1,0 +1,11 @@
+streamlit>=1.36
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.4
+xgboost>=2.0
+plotly>=5.22
+shap>=0.45
+python-dateutil>=2.9
+pyarrow>=15.0
+xai_sdk>=0.1.0
+python-dotenv>=1.0

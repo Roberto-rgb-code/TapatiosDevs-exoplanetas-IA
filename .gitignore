@@ -1,0 +1,58 @@
+# --- Python / venv ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.env
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+*.egg-info/
+*.egg
+build/
+dist/
+
+# --- Streamlit / Cachés ---
+.streamlit/cache/
+.streamlit/secrets.toml
+
+# --- Jupyter / IPython ---
+.ipynb_checkpoints/
+*.ipynb
+
+# --- Sistemas / IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.code-workspace
+
+# --- Logs / Temp ---
+*.log
+*.tmp
+*.swp
+*.swo
+
+# --- Modelos / Artefactos pesados ---
+*.joblib
+*.pkl
+*.h5
+artifacts/
+models/
+checkpoints/
+
+# --- Datos locales (opcional: permite subir muestras pequeñas) ---
+data/raw/
+data/interim/
+data/processed/
+.cache_upload_*
+# Si quieres permitir CSV pequeños de ejemplo, quita el comentario a la siguiente línea:
+# !data/*.csv
+
+# --- Salidas de la app ---
+predicciones_*.csv
+
+# --- Node/Front opcional ---
+node_modules/
