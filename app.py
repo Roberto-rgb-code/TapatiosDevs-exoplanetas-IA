@@ -1,5 +1,13 @@
 # app.py
 from __future__ import annotations
+
+# --- Fix PYTHONPATH for Streamlit Cloud ---
+import os, sys
+ROOT = os.path.dirname(os.path.abspath(__file__))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+# ----
+
 import os, io, json
 import streamlit as st
 import pandas as pd
