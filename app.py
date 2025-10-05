@@ -102,21 +102,17 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Embedded logos (no upload)
+# --- Single banner with all logos (responsive full-width)
 def logos_row():
-    cols = st.columns(4)
-    logos = {
-        "NASA": LOGOS_DIR / "NASA Logo.png",
-        "Space Apps": LOGOS_DIR / "NASA Space Challenge.png",
-        "CUGDL": LOGOS_DIR / "CUGDL LOGO OFICIAL.png",
-        "UDG": LOGOS_DIR / "Escudo Universidad de Guadalajara logo white.png",
-    }
-    for i, (label, path) in enumerate(logos.items()):
-        with cols[i]:
-            if path.exists():
-                st.image(str(path), caption=label, use_container_width=True)
-            else:
-                st.warning(f"⚠️ Missing logo for {label}")
+    banner_path = LOGOS_DIR / "Space App Challegnge group logos.png"
+    if banner_path.exists():
+        st.image(
+            str(banner_path),
+            use_container_width=True,
+            caption=None,
+        )
+    else:
+        st.warning("⚠️ Banner image not found in /assets/logos")
 
 # --- Header
 st.markdown(
@@ -130,7 +126,10 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+
+# Show the single combined banner
 logos_row()
+
 
 # --- Sidebar: data
 st.sidebar.header("⚙️ Data")
