@@ -102,18 +102,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Single banner with all logos (responsive full-width)
-def logos_row():
-    banner_path = LOGOS_DIR / "Space App Challegnge group logos.png"
-    if banner_path.exists():
-        st.image(
-            str(banner_path),
-            use_container_width=True,
-            caption=None,
-        )
-    else:
-        st.warning("⚠️ Banner image not found in /assets/logos")
-
 # --- Header
 st.markdown(
     f"""
@@ -128,7 +116,6 @@ st.markdown(
 )
 
 # Show the single combined banner
-logos_row()
 
 
 # --- Sidebar: data
