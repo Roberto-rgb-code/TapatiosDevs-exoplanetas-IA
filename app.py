@@ -276,16 +276,76 @@ else:
 
     # Por clase
     with t_stats2:
-        grp = df3.groupby("label")[cols_stats].agg(
-            n=(""+cols_stats[0], "count")  # truco para crear al menos 1 col; reemplazamos después
-        )
-        # reconstruir con múltiples métricas
         agg_dict = {c: ["count", "mean", "std", "min", "median", "max"] for c in cols_stats}
         by_label = df3.groupby("label")[cols_stats].agg(agg_dict)
         # Aplanar columnas MultiIndex
         by_label.columns = [f"{c}_{stat}" for c, stat in by_label.columns]
         st.dataframe(by_label.round(4), use_container_width=True)
 
+st.markdown("---")
+
+# ==========================
+# 🌌 Conceptos clave (con imagen XGBoost)
+# ==========================
+st.markdown(
+    """
+### 🧠 Conceptos clave para entender las predicciones
+
+**1) Variables físicas y su rol en la clasificación**
+
+| Variable | Qué mide | Por qué importa |
+|---|---|---|
+| **`radius_re`** | Radio planetario (en radios terrestres, R⊕) | Los exoplanetas confirmados suelen tener radios entre 0.8 y 15 R⊕. Valores extremos (>30 R⊕) suelen indicar binarias eclipsantes o ruido → *FALSE POSITIVE*. |
+| **`depth_ppm`** | Profundidad del tránsito (en partes por millón) | Cuánto se atenúa la luz estelar durante el tránsito. Si no es coherente con el tamaño del planeta o la estrella, el modelo sospecha *FP*. |
+| **`duration_hours`** | Duración del tránsito (en horas) | Duraciones muy cortas indican ruido instrumental; las largas y simétricas son típicas de planetas reales. |
+| **`orbital_period`** | Período orbital (días) | Los planetas confirmados suelen orbitar entre 1 y 50 días. Periodos extremos o sin repetición estable sugieren *FP*. |
+| **`insol`** | Insolación (flujo de radiación recibida) | Debe ser coherente con `teff` y `radius_re`. Si un planeta pequeño tiene insolación altísima, probablemente no sea real. |
+| **`teff`** | Temperatura efectiva de la estrella (K) | Estrellas muy calientes con tránsitos profundos suelen ser binarias → *FP*. |
+| **`star_rad_rs`** | Radio estelar (en radios solares, R☉) | Estrellas grandes diluyen los tránsitos. Si el radio y la profundidad no cuadran, el modelo penaliza como *FP*. |
+| **`mission`** | Fuente (Kepler, TESS, K2, etc.) | Ajusta el contexto de ruido: TESS tiene más falsos positivos; Kepler es más confiable. |
+
+---
+
+**2) Cómo funciona el modelo XGBoost**
+
+El algoritmo XGBoost entrena **una secuencia de árboles de decisión**, donde cada nuevo árbol intenta **corregir los errores del anterior**.  
+Así, los casos mal clasificados reciben **más peso (boosting)** en la siguiente iteración.
+
+> En otras palabras, el modelo aprende gradualmente patrones complejos combinando muchos árboles simples.
+
+📈 **Esquema visual del aprendizaje por boosting:**
+""",
+    unsafe_allow_html=True,
+)
+
+# Imagen explicativa XGBoost (de assets/)
+img_path = ASSETS_DIR / "xgboost.png"
+if img_path.exists():
+    st.image(str(img_path), caption="Esquema del proceso de boosting en XGBoost", use_container_width=True)
+else:
+    st.warning("⚠️ Imagen 'xgboost.png' no encontrada en /assets")
+
+st.markdown(
+    """
+---
+
+**3) Interpretación de las probabilidades**
+
+- **P(CONFIRMED) alta** + coherencia física → candidato fuerte.  
+- **P(FALSE POSITIVE) alta** → inconsistencia o ruido instrumental.  
+- **P(CANDIDATE) intermedia** → requiere revisión o verificación posterior.  
+
+El modelo se calibra para que los valores de probabilidad correspondan a una **confianza realista**.  
+Por ejemplo, una predicción con P(CONFIRMED)=0.80 significa que **en promedio 8 de cada 10** casos similares son planetas reales.
+
+---
+
+**4) En resumen:**
+> XGBoost actúa como un “comité” de árboles que aprende de sus propios errores,  
+> combinando la física del tránsito con la estadística del aprendizaje automático.
+""",
+    unsafe_allow_html=True,
+)
 st.markdown("---")
 
 # --- Entrenamiento
@@ -526,7 +586,7 @@ if prompt:
                         elif op == "<":   df = df[df[col] < float(val)]
                         elif op == "<=": df = df[df[col] <= float(val)]
                         elif op == "==": df = df[df[col] == val]
-            tool_output = df.head(int(args.get("limit", 20)))[
+            tool_output = df.head(int(args.get("limit, 20".split(',')[0])))[
                 ["mission", "source_id", "label", "radius_re", "orbital_period", "depth_ppm"]
             ].to_dict(orient="records")
 
