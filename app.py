@@ -8,13 +8,13 @@ from pathlib import Path
 import plotly.express as px
 from plotly.graph_objs import Figure
 from joblib import dump
-from dotenv import load_dotenv  # para leer .env
+from dotenv import load_dotenv  # to read .env
 
 from utils.data_io import build_catalog, summary_counts
 from models.pipeline import train_model, FEATURES_NUM, FEATURES_CAT
 from chatbot.grok_agent import GrokAgent
 
-# === Cargar variables de entorno (.env) ===
+# === Load environment variables (.env) ===
 load_dotenv()
 GROK_MODEL = os.getenv("GROK_MODEL", "grok-4-fast-reasoning")
 
@@ -27,25 +27,25 @@ LOGOS_DIR = ASSETS_DIR / "logos"
 
 st.set_page_config(page_title="Exoplanet AI • TapatiosDevs", page_icon="🌌", layout="wide")
 
-# ---------- Paleta (fondos azul claro)
-PAPER_BG = "#2E5AA7"   # fondo exterior de los charts
-PLOT_BG  = "#3B6BC4"   # fondo del área de ploteo
-TABLE_BG = "#2E5AA7"   # fondo de tablas
+# ---------- Palette (light blue backgrounds)
+PAPER_BG = "#2E5AA7"   # outer chart background
+PLOT_BG  = "#3B6BC4"   # plot area background
+TABLE_BG = "#2E5AA7"   # table background
 
-# Colores de alto contraste para clases (evita azul oscuro)
+# High-contrast colors for classes (avoid dark blue)
 COLOR_MAP = {
-    "CONFIRMED": "#FFD166",       # dorado claro
-    "CANDIDATE": "#06D6A0",       # turquesa
+    "CONFIRMED": "#FFD166",       # light gold
+    "CANDIDATE": "#06D6A0",       # turquoise
     "FALSE POSITIVE": "#EF476F",  # coral
-    "FA": "#A78BFA",              # lavanda
-    # variantes de texto posibles
+    "FA": "#A78BFA",              # lavender
+    # possible text variants
     "Confirmed": "#FFD166",
     "Candidate": "#06D6A0",
     "False Positive": "#EF476F",
 }
 
 def style_plot(fig: Figure) -> Figure:
-    """Aplica fondos azul claro y márgenes a cualquier figura plotly."""
+    """Apply light blue backgrounds and margins to any plotly figure."""
     fig.update_layout(
         paper_bgcolor=PAPER_BG,
         plot_bgcolor=PLOT_BG,
@@ -55,7 +55,7 @@ def style_plot(fig: Figure) -> Figure:
     )
     return fig
 
-# --- CSS general (mantiene tu style.css y añade tema azul para tablas/containers)
+# --- General CSS (keeps your style.css and adds blue theme for tables/containers)
 if (ASSETS_DIR / "style.css").exists():
     with open(ASSETS_DIR / "style.css", "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
@@ -63,7 +63,7 @@ if (ASSETS_DIR / "style.css").exists():
 st.markdown(
     f"""
     <style>
-      .stApp {{ background: #0E1A30; }} /* fondo global (oscuro) */
+      .stApp {{ background: #0E1A30; }} /* global dark background */
       .stMarkdown, .block-container {{ background: transparent; }}
       div[data-testid="stMetricValue"] {{ color: #fff; }}
       /* DataFrame */
@@ -102,7 +102,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Logos embebidos (sin upload)
+# --- Embedded logos (no upload)
 def logos_row():
     cols = st.columns(4)
     logos = {
@@ -116,7 +116,7 @@ def logos_row():
             if path.exists():
                 st.image(str(path), caption=label, use_container_width=True)
             else:
-                st.warning(f"⚠️ Falta el logo de {label}")
+                st.warning(f"⚠️ Missing logo for {label}")
 
 # --- Header
 st.markdown(
@@ -125,23 +125,23 @@ st.markdown(
   <span class="badge">NASA Space Apps 2025</span>
   <h1 style="margin:0;">{APP_TITLE}</h1>
 </div>
-<div class="small">Equipo: <b>{TEAM_NAME}</b> · Modelo LLM: <b>{GROK_MODEL}</b></div>
+<div class="small">Team: <b>{TEAM_NAME}</b> · LLM Model: <b>{GROK_MODEL}</b></div>
 <hr/>
 """,
     unsafe_allow_html=True,
 )
 logos_row()
 
-# --- Sidebar: datos (sin selector de misión)
-st.sidebar.header("⚙️ Datos")
+# --- Sidebar: data
+st.sidebar.header("⚙️ Data")
 mode = st.sidebar.selectbox(
-    "Fuente de datos",
+    "Data source",
     ["builtin", "append", "replace"],
     index=0,
-    help="builtin: embebidos • append: embebidos + tus archivos • replace: solo tus archivos",
+    help="builtin: embedded • append: embedded + your files • replace: only your files",
 )
 
-extra_files = st.sidebar.file_uploader("Subir CSV adicionales", type=["csv"], accept_multiple_files=True)
+extra_files = st.sidebar.file_uploader("Upload additional CSV files", type=["csv"], accept_multiple_files=True)
 
 uploaded_paths = []
 if extra_files:
@@ -151,83 +151,82 @@ if extra_files:
             w.write(uf.read())
         uploaded_paths.append(p)
 
-# --- Construir catálogo y dejar SOLO TESS
+# --- Build catalog and keep ONLY TESS
 cat = build_catalog(DATA_DIR, uploaded_paths, mode=mode)
 if cat.empty:
-    st.error("No hay datos. Coloca los CSV embebidos en /data o sube archivos.")
+    st.error("No data available. Place embedded CSVs in /data or upload files.")
     st.stop()
 
 if "mission" not in cat.columns:
-    st.error("El catálogo no contiene columna 'mission'.")
+    st.error("The catalog does not contain a 'mission' column.")
     st.stop()
 
 cat = cat[cat["mission"].astype(str).str.upper() == "TESS"].copy()
 if cat.empty:
-    st.error("No se encontraron filas de la misión TESS en el catálogo cargado.")
+    st.error("No TESS mission rows found in the loaded catalog.")
     st.stop()
 
-st.success(f"Catálogo activo (solo TESS): {len(cat):,} filas")
+st.success(f"Active catalog (TESS only): {len(cat):,} rows")
 
-# --- Resumen (solo TESS, pero mostramos por clase)
-st.subheader("📊 Distribución por clase (TESS)")
-cnt = summary_counts(cat)  # devuelve mission/label/count; aquí mission será TESS
+# --- Summary (TESS only, show by class)
+st.subheader("📊 Class distribution (TESS)")
+cnt = summary_counts(cat)
 st.dataframe(cnt, use_container_width=True)
 
 fig_bar = px.bar(
     cnt, x="label", y="count", color="label", text_auto=True,
-    color_discrete_map=COLOR_MAP, title="Conteo por clase en TESS"
+    color_discrete_map=COLOR_MAP, title="Count by class in TESS"
 )
 style_plot(fig_bar)
 st.plotly_chart(fig_bar, use_container_width=True)
 st.markdown("---")
 
-# --- Exploración 2D
-st.subheader("🔎 Exploración rápida (2D)")
+# --- 2D Exploration
+st.subheader("🔎 Quick Exploration (2D)")
 c1, c2 = st.columns(2)
 with c1:
-    x_axis = st.selectbox("Eje X", ["radius_re", "orbital_period", "depth_ppm", "teff", "insol"], index=0)
+    x_axis = st.selectbox("X-axis", ["radius_re", "orbital_period", "depth_ppm", "teff", "insol"], index=0)
 with c2:
-    y_axis = st.selectbox("Eje Y", ["orbital_period", "duration_hours", "snr", "mag", "star_rad_rs"], index=1)
+    y_axis = st.selectbox("Y-axis", ["orbital_period", "duration_hours", "snr", "mag", "star_rad_rs"], index=1)
 
 fig_sc = px.scatter(
     cat, x=x_axis, y=y_axis, color="label",
     opacity=0.88, hover_data=["source_id"], color_discrete_map=COLOR_MAP,
-    title="Distribución 2D (TESS)"
+    title="2D Distribution (TESS)"
 )
 style_plot(fig_sc)
 st.plotly_chart(fig_sc, use_container_width=True)
 st.markdown("---")
 
-# --- Exploración 3D
-st.subheader("🧭 Exploración 3D (TESS)")
+# --- 3D Exploration
+st.subheader("🧭 3D Exploration (TESS)")
 candidates = ["radius_re", "orbital_period", "duration_hours", "depth_ppm",
               "insol", "teff", "star_rad_rs", "snr", "mag"]
 num_opts = [c for c in candidates if c in cat.columns]
 
 if len(num_opts) < 3:
-    st.info("Se requieren al menos 3 variables numéricas (por ejemplo: radius_re, orbital_period, depth_ppm).")
+    st.info("At least 3 numeric variables are required (e.g., radius_re, orbital_period, depth_ppm).")
 else:
     c31, c32, c33, c34 = st.columns([1,1,1,1])
     with c31:
-        x3 = st.selectbox("Eje X (3D)", num_opts, index=0, key="x3_sel")
+        x3 = st.selectbox("X-axis (3D)", num_opts, index=0, key="x3_sel")
     with c32:
-        y3 = st.selectbox("Eje Y (3D)", num_opts, index=min(1, len(num_opts)-1), key="y3_sel")
+        y3 = st.selectbox("Y-axis (3D)", num_opts, index=min(1, len(num_opts)-1), key="y3_sel")
     with c33:
-        z3 = st.selectbox("Eje Z (3D)", num_opts, index=min(2, len(num_opts)-1), key="z3_sel")
+        z3 = st.selectbox("Z-axis (3D)", num_opts, index=min(2, len(num_opts)-1), key="z3_sel")
     with c34:
-        size_col = st.selectbox("Tamaño (opcional)", ["(fijo)"] + num_opts, index=0, key="size3_sel")
+        size_col = st.selectbox("Size (optional)", ["(fixed)"] + num_opts, index=0, key="size3_sel")
 
     df3 = cat[[x3, y3, z3, "label", "source_id"]].dropna().copy()
 
-    # Submuestreo para rendimiento
     max_pts = 5000
     if len(df3) > max_pts:
         df3 = df3.sample(max_pts, random_state=42)
 
-    use_log = st.checkbox("Usar escala log en X/Y/Z", value=False, key="log3_sel")
+    use_log = st.checkbox("Use log scale on X/Y/Z", value=False, key="log3_sel")
 
     kw = {}
-    if size_col != "(fijo)" and size_col in cat.columns:
+    if size_col != "(fixed)" and size_col in cat.columns:
         df3[size_col] = cat.loc[df3.index, size_col]
         kw["size"] = size_col
         kw["size_max"] = 18
@@ -237,7 +236,6 @@ else:
         hover_data={"source_id": True, x3: True, y3: True, z3: True, "label": True},
         color_discrete_map=COLOR_MAP, **kw
     )
-    # fondos 3D
     fig3.update_layout(paper_bgcolor=PAPER_BG, font=dict(color="white"), legend=dict(bgcolor="rgba(0,0,0,0)"))
     fig3.update_scenes(
         xaxis=dict(backgroundcolor=PLOT_BG, gridcolor="rgba(255,255,255,0.25)", zerolinecolor="rgba(255,255,255,0.35)"),
@@ -251,98 +249,92 @@ else:
 
     st.plotly_chart(fig3, use_container_width=True)
 
-    # ======= NUEVO: Estadísticas descriptivas (después del 3D) =======
-    st.markdown("### 📐 Estadísticas descriptivas (variables 3D seleccionadas)")
+    st.markdown("### 📐 Descriptive statistics (selected 3D variables)")
     cols_stats = [x3, y3, z3]
-    if size_col != "(fijo)" and size_col in df3.columns:
+    if size_col != "(fixed)" and size_col in df3.columns:
         cols_stats.append(size_col)
 
-    # Global
-    t_stats1, t_stats2 = st.tabs(["Global", "Por clase"])
+    t_stats1, t_stats2 = st.tabs(["Global", "By class"])
     with t_stats1:
         desc = df3[cols_stats].describe(percentiles=[0.25, 0.5, 0.75]).T
         desc = desc.rename(columns={
-            "count":"n", "mean":"media", "std":"std",
-            "min":"min", "25%":"q1", "50%":"mediana", "75%":"q3", "max":"max"
+            "count":"n", "mean":"mean", "std":"std",
+            "min":"min", "25%":"q1", "50%":"median", "75%":"q3", "max":"max"
         })
         st.dataframe(desc.round(4), use_container_width=True)
 
-        # Correlación
         if len(cols_stats) >= 2:
             corr = df3[cols_stats].corr()
-            fig_corr = px.imshow(corr, text_auto=True, aspect="auto", title="Matriz de correlación (Pearson)")
+            fig_corr = px.imshow(corr, text_auto=True, aspect="auto", title="Correlation matrix (Pearson)")
             style_plot(fig_corr)
             st.plotly_chart(fig_corr, use_container_width=True)
 
-    # Por clase
     with t_stats2:
         agg_dict = {c: ["count", "mean", "std", "min", "median", "max"] for c in cols_stats}
         by_label = df3.groupby("label")[cols_stats].agg(agg_dict)
-        # Aplanar columnas MultiIndex
         by_label.columns = [f"{c}_{stat}" for c, stat in by_label.columns]
         st.dataframe(by_label.round(4), use_container_width=True)
 
 st.markdown("---")
 
 # ==========================
-# 🌌 Conceptos clave (con imagen XGBoost)
+# 🌌 Key Concepts (with XGBoost image)
 # ==========================
 st.markdown(
     """
-### 🧠 Conceptos clave para entender las predicciones
+### 🧠 Key Concepts to Understand Predictions
 
-**1) Variables físicas y su rol en la clasificación**
+**1) Physical variables and their role in classification**
 
-| Variable | Qué mide | Por qué importa |
+| Variable | What it measures | Why it matters |
 |---|---|---|
-| **`radius_re`** | Radio planetario (en radios terrestres, R⊕) | Los exoplanetas confirmados suelen tener radios entre 0.8 y 15 R⊕. Valores extremos (>30 R⊕) suelen indicar binarias eclipsantes o ruido → *FALSE POSITIVE*. |
-| **`depth_ppm`** | Profundidad del tránsito (en partes por millón) | Cuánto se atenúa la luz estelar durante el tránsito. Si no es coherente con el tamaño del planeta o la estrella, el modelo sospecha *FP*. |
-| **`duration_hours`** | Duración del tránsito (en horas) | Duraciones muy cortas indican ruido instrumental; las largas y simétricas son típicas de planetas reales. |
-| **`orbital_period`** | Período orbital (días) | Los planetas confirmados suelen orbitar entre 1 y 50 días. Periodos extremos o sin repetición estable sugieren *FP*. |
-| **`insol`** | Insolación (flujo de radiación recibida) | Debe ser coherente con `teff` y `radius_re`. Si un planeta pequeño tiene insolación altísima, probablemente no sea real. |
-| **`teff`** | Temperatura efectiva de la estrella (K) | Estrellas muy calientes con tránsitos profundos suelen ser binarias → *FP*. |
-| **`star_rad_rs`** | Radio estelar (en radios solares, R☉) | Estrellas grandes diluyen los tránsitos. Si el radio y la profundidad no cuadran, el modelo penaliza como *FP*. |
-| **`mission`** | Fuente (Kepler, TESS, K2, etc.) | Ajusta el contexto de ruido: TESS tiene más falsos positivos; Kepler es más confiable. |
+| **`radius_re`** | Planet radius (in Earth radii, R⊕) | Confirmed exoplanets usually have radii between 0.8 and 15 R⊕. Extreme values (>30 R⊕) often indicate eclipsing binaries or noise → *FALSE POSITIVE*. |
+| **`depth_ppm`** | Transit depth (in parts per million) | How much the stellar light dims during transit. If inconsistent with planet/star size, the model suspects *FP*. |
+| **`duration_hours`** | Transit duration (hours) | Very short durations indicate instrumental noise; long and symmetric ones are typical of real planets. |
+| **`orbital_period`** | Orbital period (days) | Confirmed planets usually orbit between 1–50 days. Extreme or unstable periods suggest *FP*. |
+| **`insol`** | Insolation (radiation flux received) | Must be consistent with `teff` and `radius_re`. If a small planet has very high insolation, it’s likely not real. |
+| **`teff`** | Stellar effective temperature (K) | Very hot stars with deep transits are often binaries → *FP*. |
+| **`star_rad_rs`** | Stellar radius (in solar radii, R☉) | Large stars dilute transits. If radius and depth mismatch, the model penalizes as *FP*. |
+| **`mission`** | Source (Kepler, TESS, K2, etc.) | Adjusts noise context: TESS has more false positives; Kepler is more reliable. |
 
 ---
 
-**2) Cómo funciona el modelo XGBoost**
+**2) How the XGBoost model works**
 
-El algoritmo XGBoost entrena **una secuencia de árboles de decisión**, donde cada nuevo árbol intenta **corregir los errores del anterior**.  
-Así, los casos mal clasificados reciben **más peso (boosting)** en la siguiente iteración.
+The XGBoost algorithm trains **a sequence of decision trees**, where each new tree **tries to correct the errors of the previous one**.  
+Thus, misclassified cases receive **more weight (boosting)** in the next iteration.
 
-> En otras palabras, el modelo aprende gradualmente patrones complejos combinando muchos árboles simples.
+> In other words, the model gradually learns complex patterns by combining many simple trees.
 
-📈 **Esquema visual del aprendizaje por boosting:**
+📈 **Visual scheme of boosting learning:**
 """,
     unsafe_allow_html=True,
 )
 
-# Imagen explicativa XGBoost (de assets/)
 img_path = ASSETS_DIR / "xgboost.png"
 if img_path.exists():
-    st.image(str(img_path), caption="Esquema del proceso de boosting en XGBoost", use_container_width=True)
+    st.image(str(img_path), caption="Scheme of the boosting process in XGBoost", use_container_width=True)
 else:
-    st.warning("⚠️ Imagen 'xgboost.png' no encontrada en /assets")
+    st.warning("⚠️ Image 'xgboost.png' not found in /assets")
 
 st.markdown(
     """
 ---
 
-**3) Interpretación de las probabilidades**
+**3) Interpretation of probabilities**
 
-- **P(CONFIRMED) alta** + coherencia física → candidato fuerte.  
-- **P(FALSE POSITIVE) alta** → inconsistencia o ruido instrumental.  
-- **P(CANDIDATE) intermedia** → requiere revisión o verificación posterior.  
+- **High P(CONFIRMED)** + physical coherence → strong candidate.  
+- **High P(FALSE POSITIVE)** → inconsistency or instrumental noise.  
+- **Intermediate P(CANDIDATE)** → needs further review or verification.  
 
-El modelo se calibra para que los valores de probabilidad correspondan a una **confianza realista**.  
-Por ejemplo, una predicción con P(CONFIRMED)=0.80 significa que **en promedio 8 de cada 10** casos similares son planetas reales.
+The model is calibrated so that probability values correspond to **realistic confidence**.  
+For example, a prediction with P(CONFIRMED)=0.80 means that **on average 8 out of 10** similar cases are real planets.
 
 ---
 
-**4) En resumen:**
-> XGBoost actúa como un “comité” de árboles que aprende de sus propios errores,  
-> combinando la física del tránsito con la estadística del aprendizaje automático.
+**4) In summary:**
+> XGBoost acts as a “committee” of trees that learns from its own mistakes,  
+> combining transit physics with statistical machine learning.
 """,
     unsafe_allow_html=True,
 )

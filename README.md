@@ -1,103 +1,154 @@
-Aquí está tu README completo y limpio (sin API keys expuestas):
-markdown# A World Away: Hunting for Exoplanets with AI (TapatiosDevs)
+# A World Away: Hunting for Exoplanets with AI (TapatiosDevs)
 
-Aplicación **Streamlit** para explorar candidatos a exoplanetas (TESS) y entrenar un modelo de **clasificación multiclase** (XGBoost calibrado) que predice:
-- `CONFIRMED`, `CANDIDATE`, `FALSE POSITIVE` (y variantes si existen en datos).
+**Live app (deployed):**  
+**https://tapatiosdevs-exoplanetas-ia-stybmqnqfukrfg9wwvtwuu.streamlit.app/**
 
-Incluye:
-- Exploración **2D y 3D** con paleta accesible (sin azules oscuros que se pierdan en el fondo).
-- **Estadísticas descriptivas** (globales, por clase y correlaciones) justo después del gráfico 3D.
-- Un **copiloto** (Grok, xAI) que interpreta predicciones, explica variables y sugiere visualizaciones.
+**Primary data source (TESS / TOI table):**  
+**https://exoplanetarchive.ipac.caltech.edu/cgi-bin/TblView/nph-tblView?app=ExoTbls&config=TOI**
+
+Streamlit application to explore TESS exoplanet **candidates** and train a **multiclass classifier** (calibrated XGBoost) that predicts:
+- `CONFIRMED`, `CANDIDATE`, `FALSE POSITIVE` (and textual variants present in the data).
+
+Includes:
+- **2D and 3D exploration** with an accessible palette (no dark blues that blend into the background).
+- **Descriptive statistics** (global, by class, and correlations) right after the 3D plot.
+- An **AI Copilot** (Grok, xAI) that interprets predictions, explains variables, and suggests visualizations.
 
 ---
 
-## Requisitos
+## Highlights
 
-- **Python 3.10+** recomendado.
-- Librerías (ver `requirements.txt`), típicamente:
+- 🚀 **Deployed & public:** The project is already live at the URL above.
+- 📊 **TESS-only workflow:** The app filters to **TESS** rows and operates on the TOI dataset.
+- 🧠 **Calibrated ML:** Multiclass XGBoost with probability calibration for realistic confidence.
+- 🧭 **Explainable UI:** Concept notes on why variables matter + charts to inspect separability.
+
+---
+
+## Requirements
+
+- **Python 3.10+** recommended.
+- Core libraries (see `requirements.txt`), typically:
   - `streamlit`, `pandas`, `numpy`, `plotly`, `scikit-learn`, `xgboost`, `python-dotenv`, `joblib`
-  - SDK de xAI (`xai_sdk`) para el copiloto Grok.
+  - xAI SDK for Grok (e.g., `xai_sdk`) if you want the Copilot enabled.
 
-> Si usas Streamlit Cloud, se instalarán automáticamente desde `requirements.txt`.
+> On Streamlit Cloud, dependencies are installed automatically from `requirements.txt`.
 
 ---
 
-## Variables de entorno
+## Environment Variables
 
-Crea un archivo `.env` en la raíz (no se sube por seguridad):
+Create a `.env` file at the project root (do **not** commit it):
+
 ```env
-# Modelo LLM de xAI
+# xAI LLM model
 GROK_MODEL=grok-4-fast-reasoning
 
-# Clave de xAI (necesaria para el copiloto)
+# xAI API key (required for the Copilot)
 XAI_API_KEY=your-xai-api-key-here
-En Streamlit Cloud coloca XAI_API_KEY como secrets en la UI del proyecto (Settings → Secrets), o en .streamlit/secrets.toml:
-tomlXAI_API_KEY = "your-xai-api-key-here"
+On Streamlit Cloud, set secrets via the UI (Settings → Secrets) or in .streamlit/secrets.toml:
+
+toml
+Copiar código
+XAI_API_KEY = "your-xai-api-key-here"
 GROK_MODEL = "grok-4-fast-reasoning"
+Data
+The app is configured to operate only on TESS.
 
-Datos
-La app está configurada solo para TESS.
+You can upload extra CSVs from the sidebar (⚙️ Data → Upload additional CSV files).
 
-Puedes subir CSV adicionales desde el sidebar (⚙️ Datos → Subir CSV).
-Si tienes datos locales, colócalos en data/. Por defecto, el .gitignore excluye subcarpetas pesadas (data/raw, data/interim, data/processed).
-Si quieres versionar CSV pequeños de ejemplo, comenta la regla correspondiente en .gitignore.
+If you have local sample data, place CSVs in data/. The .gitignore typically excludes heavy subfolders like data/raw, data/interim, data/processed.
+If you want to version small example CSVs, comment out the relevant ignore rules.
 
+Reference dataset (live source used):
+https://exoplanetarchive.ipac.caltech.edu/cgi-bin/TblView/nph-tblView?app=ExoTbls&config=TOI
 
-Cómo ejecutar en local
-1. Clonar e instalar
-bashgit clone https://github.com/Roberto-rgb-code/TapatiosDevs-exoplanetas-IA.git
+Run Locally
+Clone & install
+
+bash
+Copiar código
+git clone https://github.com/Roberto-rgb-code/TapatiosDevs-exoplanetas-IA.git
 cd TapatiosDevs-exoplanetas-IA
 
-# (opcional) crear venv
+# (optional) create venv
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+# Windows:
+# .venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
 
 pip install -r requirements.txt
-2. Variables de entorno
-Crea .env con tus claves (ver sección anterior).
-3. Levantar la app
-bashstreamlit run app.py
-4. Navegar
-Abre el link que Streamlit imprime en la terminal (por defecto http://localhost:8501).
+Environment variables
+Create .env with your keys (see section above).
 
-Despliegue en Streamlit Cloud
+Start the app
 
-Sube este repo a GitHub (incluyendo requirements.txt y NO subas .env).
-Ve a share.streamlit.io y conecta tu repo.
-En Advanced settings → Secrets, añade:
+bash
+Copiar código
+streamlit run app.py
+Open in browser
+Use the link printed by Streamlit (default: http://localhost:8501).
+
+Deploy on Streamlit Cloud
+Push this repo to GitHub (include requirements.txt; do not commit .env).
+
+Go to share.streamlit.io and connect your repo.
+
+In Advanced settings → Secrets, add:
 
 XAI_API_KEY
-GROK_MODEL (opcional)
 
+GROK_MODEL (optional, falls back to grok-4-fast-reasoning)
 
-Deploy. Podrás subir CSV desde la UI de la app.
+Deploy. You can upload CSVs from the app UI once it’s running.
 
+Public deployment (already live):
+https://tapatiosdevs-exoplanetas-ia-stybmqnqfukrfg9wwvtwuu.streamlit.app/
 
-Uso rápido
+Quick Start (in the App)
+Train: Click “Train now” (TESS-only, internal stratified split).
 
-Entrenar: Botón "Entrenar ahora".
-Explorar:
+Explore:
 
-Gráficos 2D y 3D; activa escala log si lo necesitas.
-Revisa estadísticas descriptivas (resumen, cuantiles y correlación) debajo del gráfico 3D.
+Use 2D and 3D selectors; enable log scale if helpful.
 
+Check descriptive stats (summary, quantiles, correlations) below the 3D plot.
 
-Predicción rápida: muestra probabilidades por clase y permite descargar un CSV con predicciones.
-Copiloto: pregunta cosas como:
+Quick Prediction: Shows class probabilities and lets you download a CSV of predictions.
 
-"Explica por qué este objeto parece FP"
-"Sugiere un gráfico para separar candidates vs confirmed con teff y depth_ppm"
+Copilot (Grok): Ask questions like:
 
+“Explain why this object looks like an FP.”
 
+“Suggest a chart to separate candidates vs confirmed with teff and depth_ppm.”
 
+FAQ
+1) I see no data after loading.
+Ensure your CSVs include a mission column and contain TESS rows. Or upload files via the sidebar.
 
-Preguntas frecuentes
-1) No veo datos al cargar.
-Verifica que tus CSV tengan la columna mission y que contengan filas con TESS. O sube archivos desde el sidebar.
-2) Error con xAI/Grok.
-Asegúrate de definir XAI_API_KEY en .env (local) o en Secrets (Cloud). Si no usas el copiloto, la app base funciona igual.
-3) ¿Qué modelo de ML usan?
-Un XGBoost multiclase calibrado con isotonic dentro de un Pipeline de scikit-learn (estandarización para numéricos + OneHot para categóricas). Mira models/pipeline.py.
+2) xAI/Grok errors.
+Define XAI_API_KEY in .env (local) or in Secrets (Cloud).
+If you don’t use the Copilot, the core app still runs fine.
 
-Licencia
-MIT (o la que prefieras)
+3) Which ML model is used?
+A multiclass XGBoost with isotonic calibration, wrapped in a scikit-learn Pipeline
+(standardization for numeric features + one-hot encoding for categorical features).
+See models/pipeline.py.
+
+Concept Notes (Why these variables?)
+radius_re (planet radius): extreme radii (>30 R⊕) often indicate binaries/noise → FP.
+
+depth_ppm (transit depth): must be coherent with planet/star sizes.
+
+duration_hours (transit duration): very short → likely instrumental noise.
+
+orbital_period (days): confirmed typically in ~1–50 days; extreme/unstable → FP.
+
+insol, teff, star_rad_rs: physical consistency checks (irradiance, stellar type/size).
+
+mission: contextualizes noise patterns (e.g., TESS vs. Kepler).
+
+License
+MIT (or your preferred license).
+Feel free to adapt and extend for research or educational purposes.
