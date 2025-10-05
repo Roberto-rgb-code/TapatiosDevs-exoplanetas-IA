@@ -40,7 +40,7 @@ Thumbs.db
 *.pkl
 *.h5
 artifacts/
-models/
+
 checkpoints/
 
 # --- Datos locales (opcional: permite subir muestras pequeñas) ---
