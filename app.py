@@ -55,7 +55,7 @@ def style_plot(fig: Figure) -> Figure:
     )
     return fig
 
-# --- General CSS (keeps your style.css and adds blue theme for tables/containers)
+# --- Global CSS (keeps your style.css and adds blue theme for tables/containers)
 if (ASSETS_DIR / "style.css").exists():
     with open(ASSETS_DIR / "style.css", "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
@@ -114,9 +114,6 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
-
-# Show the single combined banner
-
 
 # --- Sidebar: data
 st.sidebar.header("⚙️ Data")
@@ -201,7 +198,7 @@ else:
     with c33:
         z3 = st.selectbox("Z-axis (3D)", num_opts, index=min(2, len(num_opts)-1), key="z3_sel")
     with c34:
-        size_col = st.selectbox("Size (optional)", ["(fixed)"] + num_opts, index=0, key="size3_sel")
+        size_col = st.selectbox("Point size (optional)", ["(fixed)"] + num_opts, index=0, key="size3_sel")
 
     df3 = cat[[x3, y3, z3, "label", "source_id"]].dropna().copy()
 
@@ -278,7 +275,7 @@ st.markdown(
 | **`depth_ppm`** | Transit depth (in parts per million) | How much the stellar light dims during transit. If inconsistent with planet/star size, the model suspects *FP*. |
 | **`duration_hours`** | Transit duration (hours) | Very short durations indicate instrumental noise; long and symmetric ones are typical of real planets. |
 | **`orbital_period`** | Orbital period (days) | Confirmed planets usually orbit between 1–50 days. Extreme or unstable periods suggest *FP*. |
-| **`insol`** | Insolation (radiation flux received) | Must be consistent with `teff` and `radius_re`. If a small planet has very high insolation, it’s likely not real. |
+| **`insol`** | Insolation (incident stellar flux) | Must be consistent with `teff` and `radius_re`. If a small planet has very high insolation, it’s likely not real. |
 | **`teff`** | Stellar effective temperature (K) | Very hot stars with deep transits are often binaries → *FP*. |
 | **`star_rad_rs`** | Stellar radius (in solar radii, R☉) | Large stars dilute transits. If radius and depth mismatch, the model penalizes as *FP*. |
 | **`mission`** | Source (Kepler, TESS, K2, etc.) | Adjusts noise context: TESS has more false positives; Kepler is more reliable. |
@@ -292,7 +289,7 @@ Thus, misclassified cases receive **more weight (boosting)** in the next iterati
 
 > In other words, the model gradually learns complex patterns by combining many simple trees.
 
-📈 **Visual scheme of boosting learning:**
+📈 **Visual scheme of the boosting process:**
 """,
     unsafe_allow_html=True,
 )
@@ -307,35 +304,35 @@ st.markdown(
     """
 ---
 
-**3) Interpretation of probabilities**
+**3) Interpreting probabilities**
 
 - **High P(CONFIRMED)** + physical coherence → strong candidate.  
 - **High P(FALSE POSITIVE)** → inconsistency or instrumental noise.  
-- **Intermediate P(CANDIDATE)** → needs further review or verification.  
+- **Intermediate P(CANDIDATE)** → requires further review or validation.  
 
 The model is calibrated so that probability values correspond to **realistic confidence**.  
 For example, a prediction with P(CONFIRMED)=0.80 means that **on average 8 out of 10** similar cases are real planets.
 
 ---
 
-**4) In summary:**
-> XGBoost acts as a “committee” of trees that learns from its own mistakes,  
+**4) In short:**
+> XGBoost acts like a “committee” of trees that learns from its own mistakes,  
 > combining transit physics with statistical machine learning.
 """,
     unsafe_allow_html=True,
 )
 st.markdown("---")
 
-# --- Entrenamiento
-st.subheader("🧠 Entrenar modelo (TESS)")
+# --- Training
+st.subheader("🧠 Train model (TESS)")
 if "trained" not in st.session_state:
     st.session_state["trained"] = False
 
-train_clicked = st.button("Entrenar ahora", type="primary")
+train_clicked = st.button("Train now", type="primary")
 if train_clicked:
     try:
-        with st.spinner("Entrenando y calibrando..."):
-            # Con solo TESS, usamos split estratificado interno
+        with st.spinner("Training and calibrating..."):
+            # With TESS only, use internal stratified split
             pipe, metrics, le = train_model(cat, test_subset=None)
 
             st.session_state["model"] = pipe
@@ -347,9 +344,9 @@ if train_clicked:
             dump({"model": pipe, "features_num": FEATURES_NUM, "features_cat": FEATURES_CAT, "label_encoder": le}, buf)
             st.session_state["model_blob"] = buf.getvalue()
 
-        st.success("Modelo entrenado ✅ (split interno estratificado en TESS).")
+        st.success("Model trained ✅ (internal stratified split on TESS).")
     except Exception as e:
-        st.error("Ocurrió un error durante el entrenamiento.")
+        st.error("An error occurred during training.")
         st.exception(e)
 
 if st.session_state["trained"]:
@@ -363,23 +360,25 @@ if st.session_state["trained"]:
         st.metric("AUC OvR (macro)", "-" if m["auc_macro_ovr"] is None else f"{m['auc_macro_ovr']:.3f}")
 
     cm = np.array(m["confusion_matrix"])
-    fig_cm = px.imshow(cm, text_auto=True, x=m["labels"], y=m["labels"], aspect="auto",
-                       labels=dict(x="Predicho", y="Real"))
+    fig_cm = px.imshow(
+        cm, text_auto=True, x=m["labels"], y=m["labels"], aspect="auto",
+        labels=dict(x="Predicted", y="Actual"), title="Confusion matrix"
+    )
     style_plot(fig_cm)
     st.plotly_chart(fig_cm, use_container_width=True)
 
-    st.download_button("⬇️ Descargar modelo (.joblib)", data=st.session_state["model_blob"],
+    st.download_button("⬇️ Download model (.joblib)", data=st.session_state["model_blob"],
                        file_name="exoplanet_model_tess.joblib")
 st.markdown("---")
 
-# --- Predicción demo + Visualizaciones
-st.subheader("🔮 Predicción rápida (TESS)")
+# --- Quick prediction + Visualizations
+st.subheader("🔮 Quick prediction (TESS)")
 if st.session_state.get("trained", False):
     pipe = st.session_state["model"]
     le = st.session_state.get("label_encoder")
     class_names = list(le.classes_) if le is not None else [str(c) for c in getattr(pipe, "classes_", [])]
 
-    # === Muestra 10 ejemplos
+    # === Show 10 examples
     show = cat.sample(min(10, len(cat)), random_state=42)
     X_show = show[FEATURES_NUM + ["mission"]]
     proba_show = pipe.predict_proba(X_show)
@@ -392,7 +391,7 @@ if st.session_state.get("trained", False):
         out[f"P({cls})"] = proba_show[:, i]
     st.dataframe(out, use_container_width=True)
 
-    # === Predicciones sobre TODO TESS (para visualizaciones y export)
+    # === Predictions on ALL TESS (for visualizations and export)
     Xall = cat[FEATURES_NUM + ["mission"]]
     proba_all = pipe.predict_proba(Xall)
     pred_all_idx = pipe.predict(Xall)
@@ -403,7 +402,7 @@ if st.session_state.get("trained", False):
     for i, cls in enumerate(class_names):
         pred_df[f"P({cls})"] = proba_all[:, i]
 
-    # ---------- Snapshot para el LLM (resumen de predicciones + métricas)
+    # ---------- Snapshot for the LLM (predictions + metrics summary)
     pred_counts = pred_df["pred"].value_counts().to_dict()
     mean_probs = {col: float(pred_df[col].mean()) for col in pred_df.columns if col.startswith("P(")}
     top_conf = pred_df.sort_values("P(CONFIRMED)", ascending=False).head(5)[
@@ -423,20 +422,20 @@ if st.session_state.get("trained", False):
         "metric_summary": st.session_state.get("metrics", {})
     }
 
-    # ---------- Visualizaciones
-    t1, t2, t3 = st.tabs(["📊 Distribución de clases", "📈 Histogramas de probabilidades", "🗺️ Mapa 2D por predicción"])
+    # ---------- Visualizations
+    t1, t2, t3 = st.tabs(["📊 Class distribution", "📈 Probability histograms", "🗺️ 2D map by prediction"])
 
-    # 1) Conteos (global TESS)
+    # 1) Counts (global TESS)
     with t1:
-        cnt_global = pred_df["pred"].value_counts().rename_axis("clase").reset_index(name="count")
+        cnt_global = pred_df["pred"].value_counts().rename_axis("class").reset_index(name="count")
         fig_bar_pred = px.bar(
-            cnt_global, x="clase", y="count", text_auto=True, title="Conteo de predicciones (TESS)",
-            color="clase", color_discrete_map=COLOR_MAP
+            cnt_global, x="class", y="count", text_auto=True, title="Predicted counts (TESS)",
+            color="class", color_discrete_map=COLOR_MAP
         )
         style_plot(fig_bar_pred)
         st.plotly_chart(fig_bar_pred, use_container_width=True)
 
-    # 2) Histogramas por clase
+    # 2) Histograms by class
     with t2:
         col_a, col_b = st.columns(2)
         mid = max(1, len(class_names) // 2)
@@ -444,19 +443,19 @@ if st.session_state.get("trained", False):
             with container:
                 for cls in names:
                     fig_h = px.histogram(
-                        pred_df, x=f"P({cls})", nbins=40, title=f"Distribución de P({cls})",
-                        color_discrete_sequence=["#CFE9FF"]  # tono claro
+                        pred_df, x=f"P({cls})", nbins=40, title=f"Distribution of P({cls})",
+                        color_discrete_sequence=["#CFE9FF"]  # light tone
                     )
                     style_plot(fig_h)
                     st.plotly_chart(fig_h, use_container_width=True)
 
-    # 3) Scatter 2D coloreado por clase predicha
+    # 3) 2D scatter colored by predicted class
     with t3:
         c1, c2 = st.columns(2)
         with c1:
-            x_vis = st.selectbox("Eje X (2D)", FEATURES_NUM, index=0, key="pred_x2d")
+            x_vis = st.selectbox("X-axis (2D)", FEATURES_NUM, index=0, key="pred_x2d")
         with c2:
-            y_vis = st.selectbox("Eje Y (2D)", FEATURES_NUM, index=min(1, len(FEATURES_NUM)-1), key="pred_y2d")
+            y_vis = st.selectbox("Y-axis (2D)", FEATURES_NUM, index=min(1, len(FEATURES_NUM)-1), key="pred_y2d")
 
         vis_df = cat[[x_vis, y_vis]].copy()
         vis_df["pred"] = pred_all
@@ -468,35 +467,35 @@ if st.session_state.get("trained", False):
 
         fig_pred_sc = px.scatter(
             vis_df, x=x_vis, y=y_vis, color="pred",
-            opacity=0.88, hover_data=["source_id"], title="Mapa 2D de predicciones (TESS)",
+            opacity=0.88, hover_data=["source_id"], title="2D prediction map (TESS)",
             color_discrete_map=COLOR_MAP
         )
         style_plot(fig_pred_sc)
         st.plotly_chart(fig_pred_sc, use_container_width=True)
 
-    # Botón y descarga CSV
-    if st.button("Generar archivo de predicciones (TESS)"):
+    # Generate & download CSV
+    if st.button("Generate prediction file (TESS)"):
         st.session_state["pred_export_csv"] = pred_df.to_csv(index=False).encode("utf-8")
-        st.success("Predicciones generadas. ¡Listas para descargar!")
+        st.success("Predictions generated. Ready to download!")
 
     if "pred_export_csv" in st.session_state:
-        st.download_button("⬇️ Descargar predicciones (CSV)",
+        st.download_button("⬇️ Download predictions (CSV)",
                            data=st.session_state["pred_export_csv"],
-                           file_name="predicciones_tess.csv")
+                           file_name="predictions_tess.csv")
 st.markdown("---")
 
 # =======================
-# 🤖 Copiloto Grok (xAI)
+# 🤖 Grok Copilot (xAI)
 # =======================
-st.subheader("🤖 Copiloto científico (Grok, xAI)")
+st.subheader("🤖 Scientific Copilot (Grok, xAI)")
 
 def ensure_agent():
     if "grok" not in st.session_state:
         try:
             st.session_state["grok"] = GrokAgent()
-            st.success("Grok inicializado.")
+            st.success("Grok initialized.")
         except Exception as e:
-            st.error(f"No se pudo inicializar Grok: {e}")
+            st.error(f"Could not initialize Grok: {e}")
             st.stop()
 
 ensure_agent()
@@ -508,7 +507,7 @@ for role, text in st.session_state["chat"]:
     with st.chat_message(role):
         st.write(text)
 
-prompt = st.chat_input("Haz una pregunta o pide una explicación (p. ej., '¿Por qué este objeto parece FP?')")
+prompt = st.chat_input("Ask a question or request an explanation (e.g., 'Why does this object look FP?')")
 if prompt:
     st.session_state["chat"].append(("user", prompt))
     with st.chat_message("user"):
@@ -520,7 +519,7 @@ if prompt:
         [str(c) for c in getattr(pipe, "classes_", [])] if pipe is not None else ["CONFIRMED","CANDIDATE","FALSE POSITIVE"]
     )
 
-    # ---- contexto para el LLM (TESS-only + snapshot)
+    # ---- LLM context (TESS-only + snapshot)
     context_hint = {
         "dataset": "TESS only",
         "has_model": bool(st.session_state.get("trained", False)),
@@ -529,7 +528,7 @@ if prompt:
         "features_cat": FEATURES_CAT,
         "classes": class_names,
         "examples": 5,
-        "viz_suggestion_guidelines": "Evita usar azul oscuro para puntos; sugiere X/Y/Z y rangos útiles.",
+        "viz_suggestion_guidelines": "Avoid dark blue for points; suggest useful X/Y/Z and ranges.",
         **(st.session_state.get("llm_context") or {})
     }
 
@@ -544,7 +543,7 @@ if prompt:
     try:
         if action == "METRICS":
             if not st.session_state.get("trained", False):
-                tool_output = {"error": "No hay modelo entrenado."}
+                tool_output = {"error": "No trained model."}
             else:
                 m = st.session_state["metrics"]
                 tool_output = {
@@ -559,12 +558,14 @@ if prompt:
             for col, cond in flt.items():
                 if col in df.columns and isinstance(cond, dict):
                     for op, val in cond.items():
-                        if op == ">":   df = df[df[col] > float(val)]
+                        if op == ">":    df = df[df[col] > float(val)]
                         elif op == ">=": df = df[df[col] >= float(val)]
-                        elif op == "<":   df = df[df[col] < float(val)]
+                        elif op == "<":  df = df[df[col] < float(val)]
                         elif op == "<=": df = df[df[col] <= float(val)]
                         elif op == "==": df = df[df[col] == val]
-            tool_output = df.head(int(args.get("limit, 20".split(',')[0])))[
+            # keep same logic; default limit 20 if not provided
+            limit_val = int(args.get("limit", 20))
+            tool_output = df.head(limit_val)[
                 ["mission", "source_id", "label", "radius_re", "orbital_period", "depth_ppm"]
             ].to_dict(orient="records")
 
@@ -573,7 +574,7 @@ if prompt:
             df = cat.copy()
             if sid: df = df[df["source_id"].astype(str) == str(sid)]
             if df.empty or not st.session_state.get("trained", False):
-                tool_output = {"error": "No se encontró el caso o no hay modelo entrenado."}
+                tool_output = {"error": "Case not found or no trained model."}
             else:
                 row = df.iloc[[0]]
                 X = row[FEATURES_NUM + ["mission"]]
@@ -586,7 +587,7 @@ if prompt:
             df = cat.copy()
             x = args.get("x", "radius_re"); y = args.get("y", "orbital_period")
             fig = px.scatter(df, x=x, y=y, color="label", opacity=0.88, hover_data=["source_id"],
-                             color_discrete_map=COLOR_MAP, title="Gráfico solicitado (TESS)")
+                             color_discrete_map=COLOR_MAP, title="Requested plot (TESS)")
             style_plot(fig)
             st.plotly_chart(fig, use_container_width=True)
             tool_output = {"ok": True}
@@ -600,20 +601,20 @@ if prompt:
             st.markdown(f"**TL;DR:** {narrative.get('tldr','')}")
             cols = st.columns(3)
             with cols[0]:
-                st.markdown(f"**Clase:** {narrative.get('class','UNKNOWN')}")
+                st.markdown(f"**Class:** {narrative.get('class','UNKNOWN')}")
             with cols[1]:
-                st.markdown(f"**Confianza:** {narrative.get('confidence','-')}")
+                st.markdown(f"**Confidence:** {narrative.get('confidence','-')}")
             with cols[2]:
-                st.markdown("**Acciones:** " + ", ".join(narrative.get("next_steps", []) or []))
+                st.markdown("**Next steps:** " + ", ".join(narrative.get("next_steps", []) or []))
             if narrative.get("details"):
-                st.markdown("**Detalles:**")
+                st.markdown("**Details:**")
                 st.markdown("\n".join([f"- {d}" for d in narrative["details"]]))
             if narrative.get("risks"):
-                st.markdown("**Riesgos / cautelas:**")
+                st.markdown("**Risks / caveats:**")
                 st.markdown("\n".join([f"- {r}" for r in narrative["risks"]]))
         if action and action != "NONE":
-            st.markdown(f"**Acción ejecutada:** `{action}`")
+            st.markdown(f"**Executed action:** `{action}`")
             if tool_output:
                 st.json(tool_output)
 
-    st.session_state["chat"].append(("assistant", narrative.get("tldr", "(respuesta generada)")))
+    st.session_state["chat"].append(("assistant", narrative.get("tldr", "(generated response)")))
